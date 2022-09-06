@@ -143,7 +143,7 @@ Note: Sending ```username``` in the request body is optional, but if it is sent,
 - [x] Add CHANGELOG.md
 - [x] Add LICENSE.txt
 - [x] [Version 1.0.0](#version-100-simple-api)
-- [ ] [Version 2.0.0](#version-200-versioned-api)
+- [x] [Version 2.0.0](#version-200-versioned-api)
 - [ ] [Version 2.1.0](#version-210-deprecation-and-migrating-database)
 - [ ] [Version 2.2.0](#version-220-migrated-database)
 

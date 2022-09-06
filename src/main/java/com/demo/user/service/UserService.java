@@ -6,6 +6,7 @@ import com.demo.user.entity.UserEntity;
 import com.demo.user.repository.UserRepository;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -49,7 +50,11 @@ public class UserService {
         if (this.userRepository.findByUsername(username).isPresent()) return Optional.empty();
 
         final UserEntity userEntity;
-        userEntity = new UserEntity(username, userDTO.getFullName());
+        if (version.equals("1")) {
+            userEntity = new UserEntity(username, userDTO.getFullName());
+        } else {
+            userEntity = new UserEntity(username, userDTO.getFirstName(), userDTO.getLastName());
+        }
 
         this.userRepository.save(userEntity);
 
@@ -70,7 +75,18 @@ public class UserService {
         if (optUserEntity.isEmpty()) return Optional.empty();
 
         final UserEntity userEntity = optUserEntity.get();
-        if (userDTO.getFullName() != null) userEntity.setFullName(userDTO.getFullName());
+        if (version != null) {
+            if (version.equals("1")) {
+                if (userDTO.getFullName() != null) userEntity.setFullName(userDTO.getFullName());
+            } else if (version.equals("2")) {
+                if (userDTO.getFirstName() != null) userEntity.setFirstName(userDTO.getFirstName());
+                if (userDTO.getLastName() != null) userEntity.setLastName(userDTO.getLastName());
+            }
+        } else {
+            if (userDTO.getFullName() != null) userEntity.setFullName(userDTO.getFullName());
+            if (userDTO.getFirstName() != null) userEntity.setFirstName(userDTO.getFirstName());
+            if (userDTO.getLastName() != null) userEntity.setLastName(userDTO.getLastName());
+        }
 
         this.userRepository.save(userEntity);
 
@@ -92,12 +108,35 @@ public class UserService {
     }
 
     /**
+     * Migrates old {@link UserEntity} by deleting the old entry and saving it again using the new constructor {@link UserEntity#UserEntity(String, String, String)}.
+     * @return List of {@link UserDTO} of migrated {@link UserEntity}
+     */
+    public List<UserDTO> migrateUsers() {
+        List<UserEntity> usersToMigrate = this.userRepository.getByFirstNameIsNullOrLastNameIsNull();
+        List<UserDTO> migratedUsers = new ArrayList<>();
+
+        for (UserEntity userEntity : usersToMigrate) {
+            userEntity.setFirstAndLastNameFromFullName();
+            this.userRepository.save(userEntity);
+            migratedUsers.add(new UserDTO(userEntity.getUsername(), userEntity.getFullName(), userEntity.getFirstName(), userEntity.getLastName()));
+        }
+        return migratedUsers;
+    }
+
+    /**
      * Utility function that returns an abstraction of a given {@link UserEntity} as {@link UserDTO} to {@link UserController} by version for {@link #findUser(String, String)}, {@link #createUser(String, String, UserDTO)} and {@link #updateUser(String, String, UserDTO)}.
      * @param userEntity {@link UserEntity} for abstraction
      * @param version specified resource representation version
      * @return {@link UserDTO} as abstraction of {@link UserEntity} for given version
      */
     private UserDTO getUserDtoFromUserEntityByVersion(UserEntity userEntity, String version) {
-        return new UserDTO(userEntity.getUsername(), userEntity.getFullName());
+        if (version != null) {
+            if (version.equals("1")) {
+                return new UserDTO(userEntity.getUsername(), userEntity.getFullName());
+            } else if (version.equals("2")) {
+                return new UserDTO(userEntity.getUsername(), userEntity.getFirstName(), userEntity.getLastName());
+            }
+        }
+        return new UserDTO(userEntity.getUsername(), userEntity.getFullName(), userEntity.getFirstName(), userEntity.getLastName());
     }
 }

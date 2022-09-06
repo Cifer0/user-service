@@ -9,12 +9,29 @@ import java.io.Serializable;
 public class UserDTO implements Serializable {
     private final String username;
 
-    private final String fullName;
+    private String fullName;
 
-    @JsonCreator
+    private String firstName;
+
+    private String lastName;
+
     public UserDTO(String username, String fullName) {
         this.username = username;
         this.fullName = fullName;
+    }
+
+    public UserDTO(String username, String firstName, String lastName) {
+        this.username = username;
+        this.firstName = firstName;
+        this.lastName = lastName;
+    }
+
+    @JsonCreator
+    public UserDTO(String username, String fullName, String firstName, String lastName) {
+        this.username = username;
+        this.fullName = fullName;
+        this.firstName = firstName;
+        this.lastName = lastName;
     }
 
     public String getUsername() {
@@ -23,5 +40,13 @@ public class UserDTO implements Serializable {
 
     public String getFullName() {
         return this.fullName;
+    }
+
+    public String getFirstName() {
+        return this.firstName;
+    }
+
+    public String getLastName() {
+        return this.lastName;
     }
 }

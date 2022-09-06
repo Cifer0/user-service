@@ -24,6 +24,12 @@ public class UserEntity {
     @Column(name = "full_name")
     private String fullName;
 
+    @Column(name = "first_name")
+    private String firstName;
+
+    @Column(name = "last_name")
+    private String lastName;
+
     @CreationTimestamp
     @Column(name = "creation_time")
     @Temporal(TemporalType.TIMESTAMP)
@@ -40,12 +46,28 @@ public class UserEntity {
 
     /**
      * Constructor for version = 1.
+     * Sets {@link UserEntity#firstName} and {@link UserEntity#lastName} for data integrity.
      * @param username identifying username
      * @param fullName entity attribute
      */
     public UserEntity(String username, String fullName) {
         this.username = username;
         this.fullName = fullName.trim().replaceAll(" +", " ");
+        this.setFirstAndLastNameFromFullName();
+    }
+
+    /**
+     * Constructor for latest version.
+     * Sets {@link UserEntity#fullName} for backward-compatibility with older version.
+     * @param username identifying username
+     * @param firstName entity attribute
+     * @param lastName entity attribute
+     */
+    public UserEntity(String username, String firstName, String lastName) {
+        this.username = username;
+        this.firstName = firstName.trim().replaceAll(" +", " ");
+        this.lastName = lastName.trim().replaceAll(" +", " ");
+        this.setFullNameFromFirstAndLastName();
     }
 
     public UUID getId() {
@@ -61,6 +83,23 @@ public class UserEntity {
     }
     public void setFullName(String fullName) {
         this.fullName = fullName.trim().replaceAll(" +", " ");
+        setFirstAndLastNameFromFullName();
+    }
+
+    public String getFirstName() {
+        return this.firstName;
+    }
+    public void setFirstName(String firstName) {
+        this.firstName = firstName.trim().replaceAll(" +", " ");
+        setFullNameFromFirstAndLastName();
+    }
+
+    public String getLastName() {
+        return this.lastName;
+    }
+    public void setLastName(String lastName) {
+        this.lastName = lastName.trim().replaceAll(" +", " ");
+        setFullNameFromFirstAndLastName();
     }
 
     public Date getCreationTime() {
@@ -78,5 +117,22 @@ public class UserEntity {
     @PreUpdate
     public void setUpdateTime() {
         this.updateTime = new Date();
+    }
+
+    /**
+     * Sets {@link UserEntity#fullName} by combining {@link UserEntity#firstName} and {@link UserEntity#lastName}.
+     */
+    private void setFullNameFromFirstAndLastName() {
+        this.fullName = this.firstName + " " + this.lastName;
+    }
+
+    /**
+     * Sets {@link UserEntity#firstName} and {@link UserEntity#lastName} by splitting {@link UserEntity#fullName}.
+     */
+    public void setFirstAndLastNameFromFullName() {
+        final int index = this.fullName.lastIndexOf(" ");
+        System.out.println(index);
+        this.firstName = index > -1 ? this.fullName.substring(0, index) : this.fullName;
+        this.lastName = index > -1 ? this.fullName.substring(index + 1) : null;
     }
 }

@@ -17,4 +17,10 @@
             <column name="update_time" type="timestamp"/>
         </createTable>
     </changeSet>
+    <changeSet id="1" author="young">
+        <addColumn tableName="user_data">
+            <column name="first_name" type="varchar(255)"/>
+            <column name="last_name" type="varchar(255)"/>
+        </addColumn>
+    </changeSet>
 </databaseChangeLog>

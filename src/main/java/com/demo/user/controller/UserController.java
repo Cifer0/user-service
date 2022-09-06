@@ -10,6 +10,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
 import java.net.URI;
+import java.util.List;
 import java.util.Optional;
 import java.util.regex.Pattern;
 
@@ -114,6 +115,17 @@ public class UserController {
     }
 
     /**
+     * Migrates old {@link UserEntity} entries to the latest version.
+     * @return {@link ResponseEntity} with {@link HttpStatus}-Code: 200 with List of {@link UserDTO} of migrated {@link UserEntity}
+     */
+    @GetMapping(value = "users/migrate")
+    public ResponseEntity<List<UserDTO>> migrateUsers() {
+        final List<UserDTO> migratedUsers = this.userService.migrateUsers();
+
+        return new ResponseEntity<>(migratedUsers, HttpStatus.OK);
+    }
+
+    /**
      * Utility function that determines the (perceived) version of the request and the validity of a given request body by version for {@link #postUser(String, String, UserDTO)} and {@link #putUser(String, String, UserDTO)}.
      * Allows for detection of the perceived resource representation version by the content of the request, in case none was specified as a request parameter.
      * The fullName-attribute has to contain a whitespace.
@@ -133,14 +145,37 @@ public class UserController {
         if (userDTO.getUsername() != null && !userDTO.getUsername().equals(username)) return perceivedVersion;
 
         final boolean fullNameIsNull = userDTO.getFullName() == null;
+        final boolean firstNameIsNull = userDTO.getFirstName() == null;
+        final boolean lastNameIsNull = userDTO.getLastName() == null;
+        final boolean postFailCondition = (fullNameIsNull || !firstNameIsNull || !lastNameIsNull) && (!fullNameIsNull || firstNameIsNull || lastNameIsNull);
+        final boolean putFailCondition = !fullNameIsNull && (!firstNameIsNull || !lastNameIsNull);
 
-        if (requestType.equals("POST") && fullNameIsNull) {
+        if (version != null) {
+            if (version.equals("1")) {
+                if (requestType.equals("POST") && fullNameIsNull) {
+                    return perceivedVersion;
+                } else {
+                    if (!fullNamePattern.matcher(userDTO.getFullName().trim()).find()) return perceivedVersion;
+                }
+                perceivedVersion = "1";
+            } else if (version.equals("2")) {
+                if (requestType.equals("POST") && (firstNameIsNull || lastNameIsNull)) {
+                    return perceivedVersion;
+                }
+                perceivedVersion = "2";
+            }
+        }
+
+        if ((requestType.equals("POST") && postFailCondition) || (requestType.equals("PUT") && putFailCondition)) {
             return perceivedVersion;
+        }
+
+        if (fullNameIsNull) {
+            perceivedVersion = "2";
         } else {
             if (!fullNamePattern.matcher(userDTO.getFullName().trim()).find()) return perceivedVersion;
+            perceivedVersion = "1";
         }
-        perceivedVersion = "1";
-
         return perceivedVersion;
     }
 }

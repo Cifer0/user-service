@@ -31,4 +31,12 @@ public interface UserRepository extends JpaRepository<UserEntity, UUID> {
      * @return deleted {@link UserEntity}
      */
     List<UserEntity> deleteByUsername(String username);
+
+
+    /**
+     * Finds all {@link UserEntity} entries where either one of two attributes is null.
+     * Called by {@link UserService#migrateUsers()} to migrate old {@link UserEntity} entries.
+     * @return List of {@link UserEntity} entries to be migrated
+     */
+    List<UserEntity> getByFirstNameIsNullOrLastNameIsNull();
 }

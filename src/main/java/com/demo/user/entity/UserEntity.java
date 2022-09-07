@@ -25,12 +25,6 @@ public class UserEntity {
     @JoinColumn(name = "name_id", referencedColumnName = "id")
     private NameEntity nameEntity;
 
-    @Column(name = "first_name")
-    private String firstName;
-
-    @Column(name = "last_name")
-    private String lastName;
-
     @CreationTimestamp
     @Column(name = "creation_time")
     @Temporal(TemporalType.TIMESTAMP)
@@ -55,8 +49,8 @@ public class UserEntity {
      */
     public UserEntity(String username, String firstName, String lastName) {
         this.username = username;
-        this.firstName = firstName.trim().replaceAll(" +", " ");
-        this.lastName = lastName.trim().replaceAll(" +", " ");
+        firstName = firstName.trim().replaceAll(" +", " ");
+        lastName = lastName.trim().replaceAll(" +", " ");
         this.nameEntity = new NameEntity(firstName, lastName);
     }
 
@@ -73,30 +67,6 @@ public class UserEntity {
 
     public String getUsername() {
         return this.username;
-    }
-
-    public String getFirstName() {
-        return this.firstName;
-    }
-    /**
-     * Performs Duplicate Write to ensure data integrity.
-     * @param firstName entity attribute
-     */
-    public void setFirstName(String firstName) {
-        this.firstName = firstName.trim().replaceAll(" +", " ");
-        this.nameEntity.setFirstName(firstName);
-    }
-
-    public String getLastName() {
-        return this.lastName;
-    }
-    /**
-     * Performs Duplicate Write to ensure data integrity.
-     * @param lastName entity attribute
-     */
-    public void setLastName(String lastName) {
-        this.lastName = lastName.trim().replaceAll(" +", " ");
-        this.nameEntity.setLastName(lastName);
     }
 
     public Date getCreationTime() {

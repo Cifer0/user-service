@@ -10,7 +10,6 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
 import java.net.URI;
-import java.util.List;
 import java.util.Optional;
 import java.util.regex.Pattern;
 
@@ -77,12 +76,6 @@ public class UserController {
 
         if (optUserDTO.isEmpty()) return new ResponseEntity<>(HttpStatus.FORBIDDEN);
 
-        UserDTO returnUserDTO = optUserDTO.get();
-        if (returnUserDTO.getUsername().equals("error") && returnUserDTO.getFirstName().equals("500")) {
-            System.out.println(returnUserDTO.getLastName());
-            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
-        }
-
         HttpHeaders headers = new HttpHeaders();
         headers.setLocation(URI.create("user/" + username));
 
@@ -131,32 +124,14 @@ public class UserController {
     }
 
     /**
-     * Migrates old {@link UserEntity} entries to the latest version.
-     * @return {@link ResponseEntity} with {@link HttpStatus}-Code: 200 with List of {@link UserDTO} of migrated {@link UserEntity}
-     */
-    @GetMapping(value = "users/migrate")
-    public ResponseEntity<List<UserDTO>> migrateUsers() {
-        final List<UserDTO> migratedUsers = this.userService.migrateUsers();
-
-        return new ResponseEntity<>(migratedUsers, HttpStatus.OK);
-    }
-
-    /**
      * Utility function to get a {@link ResponseEntity} for {@link UserController#getUser(String, String)}, {@link UserController#putUser(String, String, UserDTO)} and {@link UserController#deleteUser(String, String)}.
-     * Includes light-weight, makeshift error-handling.
      * @param optUserDTO {@link UserDTO} from {@link UserService}
-     * @return {@link ResponseEntity} with corresponding {@link UserDTO} or error status
+     * @return {@link ResponseEntity} with corresponding {@link UserDTO}
      */
     private ResponseEntity<UserDTO> getUserDTOResponseEntity(Optional<UserDTO> optUserDTO) {
         if (optUserDTO.isEmpty()) return new ResponseEntity<>(HttpStatus.NOT_FOUND);
 
-        UserDTO returnUserDTO = optUserDTO.get();
-        if (returnUserDTO.getUsername().equals("error") && returnUserDTO.getFirstName().equals("500")) {
-            System.out.println(returnUserDTO.getUsername() + ": " + returnUserDTO.getLastName());
-            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
-        }
-
-        return new ResponseEntity<>(returnUserDTO, HttpStatus.OK);
+        return new ResponseEntity<>(optUserDTO.get(), HttpStatus.OK);
     }
 
     /**

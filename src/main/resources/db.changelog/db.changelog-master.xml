@@ -40,4 +40,10 @@
         </addColumn>
         <dropColumn tableName="user_data" columnName="full_name"/>
     </changeSet>
+    <changeSet id="3" author="young">
+        <dropColumn tableName="user_data">
+            <column name="first_name"/>
+            <column name="last_name"/>
+        </dropColumn>
+    </changeSet>
 </databaseChangeLog>

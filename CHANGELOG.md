@@ -21,3 +21,10 @@
 
 ### Removed
 - Removed support for version 1.0.0
+
+## v2.2.0
+
+### Added or Changed
+- Added version 2.2.0
+
+### Removed

@@ -145,7 +145,7 @@ Note: Sending ```username``` in the request body is optional, but if it is sent,
 - [x] [Version 1.0.0](#version-100-simple-api)
 - [x] [Version 2.0.0](#version-200-versioned-api)
 - [x] [Version 2.1.0](#version-210-deprecation-and-migrating-database)
-- [ ] [Version 2.2.0](#version-220-migrated-database)
+- [x] [Version 2.2.0](#version-220-migrated-database)
 
 ## License
 Distributed under the MIT License. See LICENSE.txt for more information.

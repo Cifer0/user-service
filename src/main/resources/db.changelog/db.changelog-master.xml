@@ -23,4 +23,21 @@
             <column name="last_name" type="varchar(255)"/>
         </addColumn>
     </changeSet>
+    <changeSet id="2" author="young">
+        <createTable tableName="name">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false" unique="true"/>
+            </column>
+            <column name="first_name" type="varchar(255)"/>
+            <column name="last_name" type="varchar(255)"/>
+            <column name="creation_time" type="timestamp"/>
+            <column name="update_time" type="timestamp"/>
+        </createTable>
+        <addColumn tableName="user_data">
+            <column name="name_id" type="uuid">
+                <constraints foreignKeyName="id" nullable="true" references="name(id)"/>
+            </column>
+        </addColumn>
+        <dropColumn tableName="user_data" columnName="full_name"/>
+    </changeSet>
 </databaseChangeLog>

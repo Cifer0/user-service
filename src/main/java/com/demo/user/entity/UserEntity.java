@@ -21,8 +21,9 @@ public class UserEntity {
     @Size(min = 3, max = 20)
     private String username;
 
-    @Column(name = "full_name")
-    private String fullName;
+    @OneToOne(cascade = CascadeType.ALL)
+    @JoinColumn(name = "name_id", referencedColumnName = "id")
+    private NameEntity nameEntity;
 
     @Column(name = "first_name")
     private String firstName;
@@ -45,20 +46,9 @@ public class UserEntity {
     }
 
     /**
-     * Constructor for version = 1.
-     * Sets {@link UserEntity#firstName} and {@link UserEntity#lastName} for data integrity.
-     * @param username identifying username
-     * @param fullName entity attribute
-     */
-    public UserEntity(String username, String fullName) {
-        this.username = username;
-        this.fullName = fullName.trim().replaceAll(" +", " ");
-        this.setFirstAndLastNameFromFullName();
-    }
-
-    /**
      * Constructor for latest version.
-     * Sets {@link UserEntity#fullName} for backward-compatibility with older version.
+     * Creates and sets foreign key to {@link NameEntity}.
+     * Performs Duplicate Write to ensure data integrity.
      * @param username identifying username
      * @param firstName entity attribute
      * @param lastName entity attribute
@@ -67,39 +57,46 @@ public class UserEntity {
         this.username = username;
         this.firstName = firstName.trim().replaceAll(" +", " ");
         this.lastName = lastName.trim().replaceAll(" +", " ");
-        this.setFullNameFromFirstAndLastName();
+        this.nameEntity = new NameEntity(firstName, lastName);
     }
 
     public UUID getId() {
         return this.id;
     }
 
-    public String getUsername() {
-        return this.username;
+    public NameEntity getNameEntity() {
+        return this.nameEntity;
+    }
+    public void setNameEntity(NameEntity nameEntity) {
+        this.nameEntity = nameEntity;
     }
 
-    public String getFullName() {
-        return this.fullName;
-    }
-    public void setFullName(String fullName) {
-        this.fullName = fullName.trim().replaceAll(" +", " ");
-        setFirstAndLastNameFromFullName();
+    public String getUsername() {
+        return this.username;
     }
 
     public String getFirstName() {
         return this.firstName;
     }
+    /**
+     * Performs Duplicate Write to ensure data integrity.
+     * @param firstName entity attribute
+     */
     public void setFirstName(String firstName) {
         this.firstName = firstName.trim().replaceAll(" +", " ");
-        setFullNameFromFirstAndLastName();
+        this.nameEntity.setFirstName(firstName);
     }
 
     public String getLastName() {
         return this.lastName;
     }
+    /**
+     * Performs Duplicate Write to ensure data integrity.
+     * @param lastName entity attribute
+     */
     public void setLastName(String lastName) {
         this.lastName = lastName.trim().replaceAll(" +", " ");
-        setFullNameFromFirstAndLastName();
+        this.nameEntity.setLastName(lastName);
     }
 
     public Date getCreationTime() {
@@ -117,22 +114,5 @@ public class UserEntity {
     @PreUpdate
     public void setUpdateTime() {
         this.updateTime = new Date();
-    }
-
-    /**
-     * Sets {@link UserEntity#fullName} by combining {@link UserEntity#firstName} and {@link UserEntity#lastName}.
-     */
-    private void setFullNameFromFirstAndLastName() {
-        this.fullName = this.firstName + " " + this.lastName;
-    }
-
-    /**
-     * Sets {@link UserEntity#firstName} and {@link UserEntity#lastName} by splitting {@link UserEntity#fullName}.
-     */
-    public void setFirstAndLastNameFromFullName() {
-        final int index = this.fullName.lastIndexOf(" ");
-        System.out.println(index);
-        this.firstName = index > -1 ? this.fullName.substring(0, index) : this.fullName;
-        this.lastName = index > -1 ? this.fullName.substring(index + 1) : null;
     }
 }

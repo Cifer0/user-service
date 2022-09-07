@@ -31,16 +31,17 @@ public class UserController {
      * @param username identifying username as path variable
      * @param version specified version as request parameter
      * @return {@link ResponseEntity} with {@link HttpStatus}-Code:
+     *      301 with {@link UserDTO} of a GET request to new version specified in the Location header
      *      200 with {@link UserDTO} of {@link UserEntity} with given username
      *      404 if {@link UserEntity} with given username does not exist
      */
     @GetMapping(value = "user/{username}")
     public ResponseEntity<UserDTO> getUser(@PathVariable("username") final String username, @RequestParam(required = false) final String version) {
+        if (version != null && version.equals("1")) return getMovedPermanentlyResponseEntity(username);
+
         Optional<UserDTO> optUserDTO = this.userService.findUser(username, version);
 
-        if (optUserDTO.isEmpty()) return new ResponseEntity<>(HttpStatus.NOT_FOUND);
-
-        return new ResponseEntity<>(optUserDTO.get(), HttpStatus.OK);
+        return getUserDTOResponseEntity(optUserDTO);
     }
 
     /**
@@ -50,12 +51,19 @@ public class UserController {
      * @param version specified version as request parameter
      * @param userDTO appended user data as request body
      * @return {@link ResponseEntity} with {@link HttpStatus}-Code:
+     *      308 if deprecated version is specified
      *      200 with {@link UserDTO} of the created {@link UserEntity} if successful
      *      403 if username is invalid or {@link UserEntity} with given username already exist
      *      400 if request body is not valid
      */
     @PostMapping(value = "user/{username}")
     public ResponseEntity<UserDTO> postUser(@PathVariable("username") final String username, @RequestParam(required = false) final String version, @RequestBody final UserDTO userDTO) {
+        if (version != null && version.equals("1")) {
+            HttpHeaders headers = new HttpHeaders();
+            headers.setLocation(URI.create("user/" + username + "?version=2"));
+            return new ResponseEntity<>(headers, HttpStatus.PERMANENT_REDIRECT);
+        }
+
         // check for valid username (beginning with a letter, alphanumeric, minimum length: 3, maximum length: 20)
         String usernameRegex = "^([a-zA-Z])+([\\w]{2,19})+$";
         Pattern usernamePattern = Pattern.compile(usernameRegex);
@@ -69,6 +77,12 @@ public class UserController {
 
         if (optUserDTO.isEmpty()) return new ResponseEntity<>(HttpStatus.FORBIDDEN);
 
+        UserDTO returnUserDTO = optUserDTO.get();
+        if (returnUserDTO.getUsername().equals("error") && returnUserDTO.getFirstName().equals("500")) {
+            System.out.println(returnUserDTO.getLastName());
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+
         HttpHeaders headers = new HttpHeaders();
         headers.setLocation(URI.create("user/" + username));
 
@@ -81,37 +95,39 @@ public class UserController {
      * @param version specified version as request parameter
      * @param userDTO appended user data as request body
      * @return {@link ResponseEntity} with {@link HttpStatus}-Code:
+     *      301 with {@link UserDTO} of a GET request to new version specified in the Location header
      *      200 with {@link UserDTO} of the updated {@link UserEntity} if successful
      *      404 if {@link UserEntity} with given username does not exist
      *      400 if request body is not valid
      */
     @PutMapping(value = "user/{username}")
     public ResponseEntity<UserDTO> putUser(@PathVariable("username") final String username, @RequestParam(required = false) final String version, @RequestBody final UserDTO userDTO) {
+        if (version != null && version.equals("1")) return getMovedPermanentlyResponseEntity(username);
+
         String perceivedVersion = validateRequestByVersion("PUT", username, version, userDTO);
 
         if (perceivedVersion.equals("-1")) return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
 
         final Optional<UserDTO> optUserDTO = this.userService.updateUser(username, perceivedVersion, userDTO);
 
-        if (optUserDTO.isEmpty()) return new ResponseEntity<>(HttpStatus.NOT_FOUND);
-
-        return new ResponseEntity<>(optUserDTO.get(), HttpStatus.OK);
+        return getUserDTOResponseEntity(optUserDTO);
     }
 
     /**
      * Deletes {@link UserEntity} by given username and returns a {@link UserDTO} of the deleted {@link UserEntity}.
      * @param username identifying username for deletion of corresponding {@link UserEntity} as path variable
      * @return {@link ResponseEntity} with {@link HttpStatus}-Code:
+     *      301 with {@link UserDTO} of a GET request to new version specified in the Location header
      *      200 with {@link UserDTO} of deleted {@link UserEntity} if successful
      *      404 if {@link UserEntity} with given username does not exist
      */
     @DeleteMapping(value = "user/{username}")
     public ResponseEntity<UserDTO> deleteUser(@PathVariable("username") final String username, @RequestParam(required = false) final String version) {
+        if (version != null && version.equals("1")) return getMovedPermanentlyResponseEntity(username);
+
         final Optional<UserDTO> optUserDTO = this.userService.deleteUser(username, version);
 
-        if (optUserDTO.isEmpty()) return new ResponseEntity<>(HttpStatus.NOT_FOUND);
-
-        return new ResponseEntity<>(optUserDTO.get(), HttpStatus.OK);
+        return getUserDTOResponseEntity(optUserDTO);
     }
 
     /**
@@ -123,6 +139,24 @@ public class UserController {
         final List<UserDTO> migratedUsers = this.userService.migrateUsers();
 
         return new ResponseEntity<>(migratedUsers, HttpStatus.OK);
+    }
+
+    /**
+     * Utility function to get a {@link ResponseEntity} for {@link UserController#getUser(String, String)}, {@link UserController#putUser(String, String, UserDTO)} and {@link UserController#deleteUser(String, String)}.
+     * Includes light-weight, makeshift error-handling.
+     * @param optUserDTO {@link UserDTO} from {@link UserService}
+     * @return {@link ResponseEntity} with corresponding {@link UserDTO} or error status
+     */
+    private ResponseEntity<UserDTO> getUserDTOResponseEntity(Optional<UserDTO> optUserDTO) {
+        if (optUserDTO.isEmpty()) return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+
+        UserDTO returnUserDTO = optUserDTO.get();
+        if (returnUserDTO.getUsername().equals("error") && returnUserDTO.getFirstName().equals("500")) {
+            System.out.println(returnUserDTO.getUsername() + ": " + returnUserDTO.getLastName());
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+
+        return new ResponseEntity<>(returnUserDTO, HttpStatus.OK);
     }
 
     /**
@@ -138,44 +172,33 @@ public class UserController {
      */
     private String validateRequestByVersion(String requestType, String username, String version, UserDTO userDTO) {
         String perceivedVersion = "-1";
-        // fullName needs to contain a whitespace in the middle
-        String fullNameRegex = "\\s";
-        Pattern fullNamePattern = Pattern.compile(fullNameRegex);
 
         if (userDTO.getUsername() != null && !userDTO.getUsername().equals(username)) return perceivedVersion;
 
-        final boolean fullNameIsNull = userDTO.getFullName() == null;
         final boolean firstNameIsNull = userDTO.getFirstName() == null;
         final boolean lastNameIsNull = userDTO.getLastName() == null;
-        final boolean postFailCondition = (fullNameIsNull || !firstNameIsNull || !lastNameIsNull) && (!fullNameIsNull || firstNameIsNull || lastNameIsNull);
-        final boolean putFailCondition = !fullNameIsNull && (!firstNameIsNull || !lastNameIsNull);
 
-        if (version != null) {
-            if (version.equals("1")) {
-                if (requestType.equals("POST") && fullNameIsNull) {
-                    return perceivedVersion;
-                } else {
-                    if (!fullNamePattern.matcher(userDTO.getFullName().trim()).find()) return perceivedVersion;
-                }
-                perceivedVersion = "1";
-            } else if (version.equals("2")) {
-                if (requestType.equals("POST") && (firstNameIsNull || lastNameIsNull)) {
-                    return perceivedVersion;
-                }
-                perceivedVersion = "2";
-            }
-        }
-
-        if ((requestType.equals("POST") && postFailCondition) || (requestType.equals("PUT") && putFailCondition)) {
+        if (requestType.equals("POST") && (firstNameIsNull || lastNameIsNull)) {
             return perceivedVersion;
+        } else {
+            perceivedVersion = "2";
         }
 
-        if (fullNameIsNull) {
-            perceivedVersion = "2";
-        } else {
-            if (!fullNamePattern.matcher(userDTO.getFullName().trim()).find()) return perceivedVersion;
-            perceivedVersion = "1";
-        }
         return perceivedVersion;
+    }
+
+    /**
+     * Utility function that generates a GET response with resource and location of the new version when old version is requested.
+     * @param username specified username in request
+     * @return {@link ResponseEntity} with {@link HttpStatus}-Code: 301 with URL for updated version and {@link UserDTO} of GET request
+     */
+    private ResponseEntity<UserDTO> getMovedPermanentlyResponseEntity(String username) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setLocation(URI.create("user/" + username + "?version=2"));
+        ResponseEntity<UserDTO> userDTOResponseEntity = this.getUser(username, "2");
+        if (userDTOResponseEntity.getStatusCode().equals(HttpStatus.OK)) {
+            return new ResponseEntity<>(userDTOResponseEntity.getBody(), headers, HttpStatus.MOVED_PERMANENTLY);
+        }
+        return userDTOResponseEntity;
     }
 }

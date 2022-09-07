@@ -34,9 +34,9 @@ public interface UserRepository extends JpaRepository<UserEntity, UUID> {
 
 
     /**
-     * Finds all {@link UserEntity} entries where either one of two attributes is null.
+     * Finds all {@link UserEntity} entries where the foreign key is null.
      * Called by {@link UserService#migrateUsers()} to migrate old {@link UserEntity} entries.
      * @return List of {@link UserEntity} entries to be migrated
      */
-    List<UserEntity> getByFirstNameIsNullOrLastNameIsNull();
+    List<UserEntity> getByNameEntityIsNull();
 }

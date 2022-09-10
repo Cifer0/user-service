@@ -28,3 +28,10 @@
 - Added version 2.2.0
 
 ### Removed
+
+## v.2.2.1
+
+### Added or Changed
+- Added not-null constraint to ```name_id``` of ```user_data``` in ```db.changelog-master/xml```
+
+### Removed

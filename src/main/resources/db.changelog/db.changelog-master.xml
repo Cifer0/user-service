@@ -45,5 +45,6 @@
             <column name="first_name"/>
             <column name="last_name"/>
         </dropColumn>
+        <addNotNullConstraint tableName="user_data" columnName="name_id"/>
     </changeSet>
 </databaseChangeLog>
